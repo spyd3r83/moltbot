@@ -71,3 +71,5 @@ USER.md
 
 # local tooling
 .serena/
+scripts/__pycache__/sync_discord_allowlist.cpython-311.pyc
+scripts/__pycache__/sync_discord_allowlist.cpython-311.pyc

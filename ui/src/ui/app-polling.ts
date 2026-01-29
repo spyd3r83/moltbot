@@ -1,12 +1,14 @@
 import { loadLogs } from "./controllers/logs";
 import { loadNodes } from "./controllers/nodes";
 import { loadDebug } from "./controllers/debug";
+import { startCronPolling, stopCronPolling } from "./controllers/cron";
 import type { MoltbotApp } from "./app";
 
 type PollingHost = {
   nodesPollInterval: number | null;
   logsPollInterval: number | null;
   debugPollInterval: number | null;
+  cronPollInterval: number | null;
   tab: string;
 };
 
@@ -50,4 +52,12 @@ export function stopDebugPolling(host: PollingHost) {
   if (host.debugPollInterval == null) return;
   clearInterval(host.debugPollInterval);
   host.debugPollInterval = null;
+}
+
+export function startCronPollingFn(host: PollingHost) {
+  startCronPolling(host as unknown as MoltbotApp);
+}
+
+export function stopCronPollingFn(host: PollingHost) {
+  stopCronPolling(host as unknown as MoltbotApp);
 }

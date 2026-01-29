@@ -122,6 +122,11 @@ export type AppViewState = {
   cronRunsJobId: string | null;
   cronRuns: CronRunLogEntry[];
   cronBusy: boolean;
+  cronRunsCache: Map<string, { entries: CronRunLogEntry[]; ts: number }>;
+  lastUpdatedMs: number | null;
+  editingJobId: string | null;
+  cronFilter: string;
+  cronFilterType: "all" | "enabled" | "disabled";
   skillsLoading: boolean;
   skillsReport: SkillStatusReport | null;
   skillsError: string | null;

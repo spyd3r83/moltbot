@@ -403,15 +403,7 @@ export type CronPayload =
       thinking?: string;
       timeoutSeconds?: number;
       deliver?: boolean;
-      provider?:
-        | "last"
-        | "whatsapp"
-        | "telegram"
-        | "discord"
-        | "slack"
-        | "signal"
-        | "imessage"
-        | "msteams";
+      channel?: string;
       to?: string;
       bestEffortDeliver?: boolean;
     };

@@ -2,6 +2,7 @@ import { toNumber } from "../format";
 import type { GatewayBrowserClient } from "../gateway";
 import type { CronJob, CronRunLogEntry, CronStatus } from "../types";
 import type { CronFormState } from "../ui-types";
+import { DEFAULT_CRON_FORM } from "../app-defaults";
 
 export type CronState = {
   client: GatewayBrowserClient | null;
@@ -13,20 +14,51 @@ export type CronState = {
   cronForm: CronFormState;
   cronRunsJobId: string | null;
   cronRuns: CronRunLogEntry[];
+  cronRunsCache: Map<string, { entries: CronRunLogEntry[]; ts: number }>;
   cronBusy: boolean;
+  lastUpdatedMs: number | null;
 };
 
-export async function loadCronStatus(state: CronState) {
+export function startCronPolling(state: CronState & { pollInterval?: number | null; cronRetryAttempts?: number; cronMaxRetries?: number }) {
+  if (state.pollInterval != null) return;
+  state.pollInterval = window.setInterval(() => {
+    void loadCronStatus(state);
+    if (state.cronJobs.length > 0) {
+      void loadCronJobs(state);
+    }
+  }, 10000);
+}
+
+export function stopCronPolling(state: CronState & { pollInterval?: number | null }) {
+  if (state.pollInterval == null) return;
+  clearInterval(state.pollInterval);
+  state.pollInterval = null;
+}
+
+function getRetryDelay(attempt: number): number {
+  return Math.min(1000 * Math.pow(2, attempt), 30000);
+}
+
+export async function loadCronStatus(state: CronState & { cronRetryAttempts?: number; cronMaxRetries?: number }) {
   if (!state.client || !state.connected) return;
   try {
     const res = (await state.client.request("cron.status", {})) as CronStatus;
     state.cronStatus = res;
+    state.lastUpdatedMs = Date.now();
+    state.cronRetryAttempts = 0;
+    state.cronError = null;
   } catch (err) {
     state.cronError = String(err);
+    state.cronRetryAttempts = (state.cronRetryAttempts ?? 0) + 1;
+    const maxRetries = state.cronMaxRetries ?? 3;
+    if ((state.cronRetryAttempts ?? 0) < maxRetries) {
+      const delay = getRetryDelay(state.cronRetryAttempts ?? 0);
+      setTimeout(() => void loadCronStatus(state), delay);
+    }
   }
 }
 
-export async function loadCronJobs(state: CronState) {
+export async function loadCronJobs(state: CronState & { cronRetryAttempts?: number; cronMaxRetries?: number }) {
   if (!state.client || !state.connected) return;
   if (state.cronLoading) return;
   state.cronLoading = true;
@@ -36,8 +68,16 @@ export async function loadCronJobs(state: CronState) {
       includeDisabled: true,
     })) as { jobs?: CronJob[] };
     state.cronJobs = Array.isArray(res.jobs) ? res.jobs : [];
+    state.lastUpdatedMs = Date.now();
+    state.cronRetryAttempts = 0;
   } catch (err) {
     state.cronError = String(err);
+    state.cronRetryAttempts = (state.cronRetryAttempts ?? 0) + 1;
+    const maxRetries = state.cronMaxRetries ?? 3;
+    if ((state.cronRetryAttempts ?? 0) < maxRetries) {
+      const delay = getRetryDelay(state.cronRetryAttempts ?? 0);
+      setTimeout(() => void loadCronJobs(state), delay);
+    }
   } finally {
     state.cronLoading = false;
   }
@@ -86,7 +126,12 @@ export function buildCronPayload(form: CronFormState) {
 }
 
 export async function addCronJob(state: CronState) {
-  if (!state.client || !state.connected || state.cronBusy) return;
+  if (!state.client || !state.connected) {
+    state.cronError = "Not connected to gateway. Please connect first.";
+    return;
+  }
+  if (state.cronBusy) return;
+  
   state.cronBusy = true;
   state.cronError = null;
   try {
@@ -103,19 +148,13 @@ export async function addCronJob(state: CronState) {
       wakeMode: state.cronForm.wakeMode,
       payload,
       isolation:
-        state.cronForm.postToMainPrefix.trim() &&
-        state.cronForm.sessionTarget === "isolated"
+        state.cronForm.sessionTarget === "isolated" && state.cronForm.postToMainPrefix.trim()
           ? { postToMainPrefix: state.cronForm.postToMainPrefix.trim() }
           : undefined,
     };
     if (!job.name) throw new Error("Name required.");
     await state.client.request("cron.add", job);
-    state.cronForm = {
-      ...state.cronForm,
-      name: "",
-      description: "",
-      payloadText: "",
-    };
+    state.cronForm = { ...DEFAULT_CRON_FORM };
     await loadCronJobs(state);
     await loadCronStatus(state);
   } catch (err) {
@@ -158,12 +197,73 @@ export async function runCronJob(state: CronState, job: CronJob) {
   }
 }
 
+export async function updateCronJob(
+  state: CronState,
+  job: CronJob,
+  patch: {
+    name?: string;
+    description?: string;
+    enabled?: boolean;
+  },
+) {
+  if (!state.client || !state.connected || state.cronBusy) return;
+  state.cronBusy = true;
+  state.cronError = null;
+  try {
+    await state.client.request("cron.update", { id: job.id, patch });
+    await loadCronJobs(state);
+    await loadCronStatus(state);
+  } catch (err) {
+    state.cronError = String(err);
+  } finally {
+    state.cronBusy = false;
+  }
+}
+
+export function editJob(state: CronState, job: CronJob) {
+  const schedule = job.schedule;
+  state.cronForm = {
+    name: job.name,
+    description: job.description ?? "",
+    agentId: job.agentId ?? "",
+    enabled: job.enabled,
+    scheduleKind: schedule.kind,
+    scheduleAt: schedule.kind === "at" ? new Date(schedule.atMs).toISOString().slice(0, 16) : "",
+    everyAmount: schedule.kind === "every" ? String(schedule.everyMs / (schedule.kind === "every" ? (schedule.everyMs >= 86400000 ? 86400000 : schedule.everyMs >= 3600000 ? 3600000 : 60000) : 1)).replace(/\.0+$/, "") : "30",
+    everyUnit: schedule.kind === "every"
+      ? schedule.everyMs >= 86400000
+        ? "days"
+        : schedule.everyMs >= 3600000
+          ? "hours"
+          : "minutes"
+      : "minutes",
+    cronExpr: schedule.kind === "cron" ? schedule.expr : "",
+    cronTz: schedule.kind === "cron" ? schedule.tz ?? "" : "",
+    sessionTarget: job.sessionTarget,
+    wakeMode: job.wakeMode,
+    payloadKind: job.payload.kind,
+    payloadText: job.payload.kind === "systemEvent" ? job.payload.text : job.payload.message ?? "",
+    deliver: job.payload.kind === "agentTurn" && job.payload.deliver === true,
+    channel: job.payload.kind === "agentTurn" ? job.payload.channel ?? "last" : "last",
+    to: job.payload.kind === "agentTurn" ? (job.payload.to ?? "") : "",
+    timeoutSeconds: job.payload.kind === "agentTurn" && job.payload.timeoutSeconds ? String(job.payload.timeoutSeconds) : "",
+    postToMainPrefix:
+      job.isolation && "postToMainPrefix" in job.isolation ? (job.isolation.postToMainPrefix ?? "") : "",
+  };
+}
+
+export function duplicateJob(state: CronState, job: CronJob) {
+  editJob(state, job);
+  state.cronForm.name = `${job.name} (copy)`;
+}
+
 export async function removeCronJob(state: CronState, job: CronJob) {
   if (!state.client || !state.connected || state.cronBusy) return;
   state.cronBusy = true;
   state.cronError = null;
   try {
     await state.client.request("cron.remove", { id: job.id });
+    state.cronRunsCache.delete(job.id);
     if (state.cronRunsJobId === job.id) {
       state.cronRunsJobId = null;
       state.cronRuns = [];
@@ -177,15 +277,27 @@ export async function removeCronJob(state: CronState, job: CronJob) {
   }
 }
 
+const RUNS_CACHE_TTL_MS = 30000;
+
 export async function loadCronRuns(state: CronState, jobId: string) {
   if (!state.client || !state.connected) return;
+
+  const cached = state.cronRunsCache.get(jobId);
+  if (cached && Date.now() - cached.ts < RUNS_CACHE_TTL_MS) {
+    state.cronRunsJobId = jobId;
+    state.cronRuns = cached.entries;
+    return;
+  }
+
   try {
     const res = (await state.client.request("cron.runs", {
       id: jobId,
       limit: 50,
     })) as { entries?: CronRunLogEntry[] };
+    const entries = Array.isArray(res.entries) ? res.entries : [];
+    state.cronRunsCache.set(jobId, { entries, ts: Date.now() });
     state.cronRunsJobId = jobId;
-    state.cronRuns = Array.isArray(res.entries) ? res.entries : [];
+    state.cronRuns = entries;
   } catch (err) {
     state.cronError = String(err);
   }

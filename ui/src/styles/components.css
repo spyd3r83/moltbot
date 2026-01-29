@@ -1484,3 +1484,430 @@
   flex-wrap: wrap;
   gap: 8px;
 }
+
+/* ===========================================
+   Modal / Dialog
+   =========================================== */
+
+.modal-overlay {
+  position: fixed;
+  inset: 0;
+  background: rgba(0, 0, 0, 0.8);
+  backdrop-filter: blur(4px);
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  padding: 24px;
+  z-index: 200;
+  animation: fade-in 0.15s var(--ease-out);
+}
+
+.modal-content {
+  width: min(560px, 100%);
+  max-height: calc(100vh - 48px);
+  overflow-y: auto;
+  background: var(--card);
+  border: 1px solid var(--border);
+  border-radius: var(--radius-lg);
+  animation: scale-in 0.2s var(--ease-out);
+}
+
+.run-history-modal {
+  padding: 0;
+}
+
+.modal-header {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  padding: 16px 20px;
+  border-bottom: 1px solid var(--border);
+}
+
+.modal-header .card-title {
+  margin: 0;
+}
+
+.modal-close {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  width: 32px;
+  height: 32px;
+  border: none;
+  background: transparent;
+  border-radius: var(--radius-md);
+  cursor: pointer;
+  color: var(--muted);
+  transition: background var(--duration-fast) ease;
+}
+
+.modal-close:hover {
+  background: var(--secondary);
+  color: var(--text);
+}
+
+.modal-body {
+  padding: 20px;
+}
+
+/* ===========================================
+   Loading Spinner
+   =========================================== */
+
+.loading-spinner {
+  display: inline-block;
+  width: 14px;
+  height: 14px;
+  border: 2px solid currentColor;
+  border-right-color: transparent;
+  border-radius: 50%;
+  animation: spin 0.6s linear infinite;
+}
+
+@keyframes spin {
+  to {
+    transform: rotate(360deg);
+  }
+}
+
+/* ===========================================
+   Icon Button
+   =========================================== */
+
+.btn.icon-btn {
+  padding: 6px 8px;
+  min-width: 32px;
+}
+
+/* ===========================================
+   Error Banner
+   =========================================== */
+
+.error-banner {
+  padding: 10px 12px;
+  border-radius: var(--radius-md);
+  background: var(--danger-subtle);
+  border: 1px solid var(--danger-subtle);
+  color: var(--danger);
+  font-size: 13px;
+}
+
+/* ===========================================
+   Form Validation
+   =========================================== */
+
+.field-error {
+  color: var(--danger);
+  font-size: 12px;
+  margin-top: 4px;
+}
+
+.field-hint {
+  color: var(--muted);
+  font-size: 12px;
+  margin-top: 4px;
+}
+
+.field-error input,
+.field-error textarea,
+.field-error select {
+  border-color: var(--danger);
+}
+
+.field-error input:focus,
+.field-error textarea:focus,
+.field-error select:focus {
+  box-shadow: 0 0 0 2px var(--danger-subtle);
+}
+
+/* ===========================================
+   Toast Notifications
+   =========================================== */
+
+.toast-container {
+  position: fixed;
+  bottom: 24px;
+  right: 24px;
+  display: flex;
+  flex-direction: column;
+  gap: 8px;
+  z-index: 300;
+  max-width: 400px;
+}
+
+.toast {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  padding: 12px 14px;
+  border-radius: var(--radius-md);
+  background: var(--card);
+  border: 1px solid var(--border);
+  box-shadow: var(--shadow-lg);
+  animation: slide-in 0.2s var(--ease-out);
+}
+
+@keyframes slide-in {
+  from {
+    opacity: 0;
+    transform: translateX(100%);
+  }
+  to {
+    opacity: 1;
+    transform: translateX(0);
+  }
+}
+
+.toast-success {
+  border-color: rgba(34, 197, 94, 0.3);
+  background: linear-gradient(135deg, rgba(34, 197, 94, 0.08) 0%, rgba(34, 197, 94, 0.04) 100%);
+}
+
+.toast-success .toast-icon {
+  color: var(--ok);
+}
+
+.toast-error {
+  border-color: rgba(239, 68, 68, 0.3);
+  background: linear-gradient(135deg, rgba(239, 68, 68, 0.08) 0%, rgba(239, 68, 68, 0.04) 100%);
+}
+
+.toast-error .toast-icon {
+  color: var(--danger);
+}
+
+.toast-warning {
+  border-color: rgba(245, 158, 11, 0.3);
+  background: linear-gradient(135deg, rgba(245, 158, 11, 0.08) 0%, rgba(245, 158, 11, 0.04) 100%);
+}
+
+.toast-warning .toast-icon {
+  color: var(--warn);
+}
+
+.toast-info {
+  border-color: rgba(59, 130, 246, 0.3);
+  background: linear-gradient(135deg, rgba(59, 130, 246, 0.08) 0%, rgba(59, 130, 246, 0.04) 100%);
+}
+
+.toast-info .toast-icon {
+  color: var(--info);
+}
+
+.toast-icon {
+  display: flex;
+  align-items: center;
+  flex-shrink: 0;
+}
+
+.toast-message {
+  flex: 1;
+  font-size: 13px;
+  line-height: 1.4;
+}
+
+.toast-dismiss {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  width: 24px;
+  height: 24px;
+  border: none;
+  background: transparent;
+  border-radius: var(--radius-sm);
+  cursor: pointer;
+  color: var(--muted);
+  transition: background var(--duration-fast) ease;
+}
+
+.toast-dismiss:hover {
+  background: var(--secondary);
+  color: var(--text);
+}
+
+/* ===========================================
+   Confirm Dialog
+   =========================================== */
+
+.confirm-dialog {
+  max-width: 420px;
+}
+
+.modal-actions {
+  display: flex;
+  justify-content: flex-end;
+  gap: 8px;
+  padding: 16px 20px;
+  border-top: 1px solid var(--border);
+}
+
+.confirm-dialog .modal-body p {
+  margin: 0;
+  font-size: 14px;
+  line-height: 1.5;
+  color: var(--text);
+}
+
+/* ===========================================
+   Required Field Indicator
+   =========================================== */
+
+.required {
+  color: var(--danger);
+  margin-left: 2px;
+}
+
+/* ===========================================
+   Tooltip
+   =========================================== */
+
+.tooltip-container {
+  position: relative;
+  display: inline-flex;
+  align-items: center;
+}
+
+.tooltip-trigger {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  width: 16px;
+  height: 16px;
+  border: none;
+  background: transparent;
+  border-radius: 50%;
+  cursor: help;
+  color: var(--muted);
+  font-size: 11px;
+  font-weight: 600;
+  transition: background var(--duration-fast) ease;
+}
+
+.tooltip-trigger:hover {
+  background: var(--secondary);
+  color: var(--text);
+}
+
+.tooltip-content {
+  position: absolute;
+  bottom: calc(100% + 8px);
+  left: 50%;
+  transform: translateX(-50%);
+  padding: 8px 12px;
+  background: var(--bg-elevated);
+  border: 1px solid var(--border);
+  border-radius: var(--radius-md);
+  font-size: 12px;
+  line-height: 1.4;
+  max-width: 250px;
+  white-space: normal;
+  z-index: 100;
+  box-shadow: var(--shadow-md);
+  animation: fade-in 0.15s var(--ease-out);
+}
+
+.tooltip-content::after {
+  content: "";
+  position: absolute;
+  top: 100%;
+  left: 50%;
+  transform: translateX(-50%);
+  border: 6px solid transparent;
+  border-top-color: var(--border);
+}
+
+/* ===========================================
+   Job Filter Bar
+   =========================================== */
+
+.filter-bar {
+  display: flex;
+  align-items: center;
+  gap: 12px;
+  margin-bottom: 12px;
+  flex-wrap: wrap;
+}
+
+.filter-bar__search {
+  flex: 1;
+  min-width: 200px;
+}
+
+.filter-bar__search input {
+  width: 100%;
+  padding: 8px 12px;
+  border: 1px solid var(--input);
+  border-radius: var(--radius-md);
+  background: var(--card);
+  font-size: 13px;
+}
+
+.filter-bar__search input:focus {
+  outline: none;
+  border-color: var(--ring);
+  box-shadow: var(--focus-ring);
+}
+
+.filter-bar__tabs {
+  display: flex;
+  gap: 4px;
+}
+
+.filter-bar__tab {
+  padding: 6px 12px;
+  border: 1px solid var(--border);
+  background: transparent;
+  border-radius: var(--radius-md);
+  font-size: 12px;
+  font-weight: 500;
+  cursor: pointer;
+  color: var(--muted);
+  transition: all var(--duration-fast) ease;
+}
+
+.filter-bar__tab:hover {
+  border-color: var(--border-strong);
+  color: var(--text);
+}
+
+.filter-bar__tab.active {
+  background: var(--secondary);
+  border-color: var(--accent);
+  color: var(--accent);
+}
+
+/* ===========================================
+   Schedule Preview
+   =========================================== */
+
+.schedule-preview {
+  padding: 12px;
+  background: var(--secondary);
+  border: 1px solid var(--border);
+  border-radius: var(--radius-md);
+  margin-top: 12px;
+}
+
+.schedule-preview__label {
+  font-size: 11px;
+  font-weight: 500;
+  text-transform: uppercase;
+  letter-spacing: 0.04em;
+  color: var(--muted);
+  margin-bottom: 6px;
+}
+
+.schedule-preview__value {
+  font-size: 14px;
+  font-weight: 600;
+  color: var(--text-strong);
+}
+
+.schedule-preview__value.success {
+  color: var(--ok);
+}
+
+.schedule-preview__value.error {
+  color: var(--danger);
+}

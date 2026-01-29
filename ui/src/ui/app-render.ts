@@ -30,6 +30,7 @@ import type {
   StatusSummary,
 } from "./types";
 import type { ChatQueueItem, CronFormState } from "./ui-types";
+import { DEFAULT_CRON_FORM } from "./app-defaults";
 import { refreshChatAvatar } from "./app-chat";
 import { renderChat } from "./views/chat";
 import { renderConfig } from "./views/config";
@@ -79,7 +80,7 @@ import {
   saveExecApprovals,
   updateExecApprovalsFormValue,
 } from "./controllers/exec-approvals";
-import { loadCronRuns, toggleCronJob, runCronJob, removeCronJob, addCronJob } from "./controllers/cron";
+import { loadCronRuns, toggleCronJob, runCronJob, removeCronJob, addCronJob, buildCronSchedule, updateCronJob, editJob, duplicateJob } from "./controllers/cron";
 import { loadDebug, callDebugMethod } from "./controllers/debug";
 import { loadLogs } from "./controllers/logs";
 
@@ -320,13 +321,49 @@ export function renderApp(state: AppViewState) {
               channelMeta: state.channelsSnapshot?.channelMeta ?? [],
               runsJobId: state.cronRunsJobId,
               runs: state.cronRuns,
+              lastUpdatedMs: state.lastUpdatedMs,
+              editingJobId: state.editingJobId,
+              filter: state.cronFilter,
+              filterType: state.cronFilterType,
               onFormChange: (patch) => (state.cronForm = { ...state.cronForm, ...patch }),
               onRefresh: () => state.loadCron(),
-              onAdd: () => addCronJob(state),
+              onSubmit: async () => {
+                if (state.editingJobId) {
+                  const job = state.cronJobs.find(j => j.id === state.editingJobId);
+                  if (job) {
+                    await updateCronJob(state, job, {
+                      name: state.cronForm.name.trim(),
+                      description: state.cronForm.description.trim() || undefined,
+                      enabled: state.cronForm.enabled,
+                    });
+                  }
+                  state.editingJobId = null;
+                } else {
+                  await addCronJob(state);
+                }
+              },
+              onEdit: (job) => {
+                editJob(state, job);
+                state.editingJobId = job.id;
+              },
+              onDuplicate: (job) => {
+                duplicateJob(state, job);
+                state.editingJobId = null;
+              },
+              onCancelEdit: () => {
+                state.cronForm = { ...DEFAULT_CRON_FORM };
+                state.editingJobId = null;
+              },
               onToggle: (job, enabled) => toggleCronJob(state, job, enabled),
               onRun: (job) => runCronJob(state, job),
-              onRemove: (job) => removeCronJob(state, job),
+              onRemove: (job) => {
+                if (confirm(`Are you sure you want to delete "${job.name}"?`)) {
+                  void removeCronJob(state, job);
+                }
+              },
               onLoadRuns: (jobId) => loadCronRuns(state, jobId),
+              onFilterChange: (filter) => (state.cronFilter = filter),
+              onFilterTypeChange: (type) => (state.cronFilterType = type),
             })
           : nothing}
 

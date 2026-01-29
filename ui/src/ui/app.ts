@@ -212,6 +212,15 @@ export class MoltbotApp extends LitElement {
   @state() cronRunsJobId: string | null = null;
   @state() cronRuns: CronRunLogEntry[] = [];
   @state() cronBusy = false;
+  @state() cronRunsCache = new Map<string, { entries: CronRunLogEntry[]; ts: number }>();
+  @state() lastUpdatedMs: number | null = null;
+  @state() editingJobId: string | null = null;
+  @state() cronFilter = "";
+  @state() cronFilterType: "all" | "enabled" | "disabled" = "all";
+
+  cronPollInterval: number | null = null;
+  cronRetryAttempts = 0;
+  cronMaxRetries = 3;
 
   @state() skillsLoading = false;
   @state() skillsReport: SkillStatusReport | null = null;

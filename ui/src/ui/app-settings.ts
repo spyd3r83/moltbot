@@ -1,5 +1,5 @@
 import { loadConfig, loadConfigSchema } from "./controllers/config";
-import { loadCronJobs, loadCronStatus } from "./controllers/cron";
+import { loadCronJobs, loadCronStatus, startCronPolling, stopCronPolling } from "./controllers/cron";
 import { loadChannels } from "./controllers/channels";
 import { loadDebug } from "./controllers/debug";
 import { loadLogs } from "./controllers/logs";
@@ -120,6 +120,11 @@ export function setTab(host: SettingsHost, next: Tab) {
   if (next === "debug")
     startDebugPolling(host as unknown as Parameters<typeof startDebugPolling>[0]);
   else stopDebugPolling(host as unknown as Parameters<typeof stopDebugPolling>[0]);
+  if (next === "cron") {
+    startCronPolling(host as unknown as Parameters<typeof startCronPolling>[0]);
+  } else {
+    stopCronPolling(host as unknown as Parameters<typeof stopCronPolling>[0]);
+  }
   void refreshActiveTab(host);
   syncUrlWithTab(host, next, false);
 }
@@ -268,6 +273,11 @@ export function setTabFromRoute(host: SettingsHost, next: Tab) {
   if (next === "debug")
     startDebugPolling(host as unknown as Parameters<typeof startDebugPolling>[0]);
   else stopDebugPolling(host as unknown as Parameters<typeof stopDebugPolling>[0]);
+  if (next === "cron") {
+    startCronPolling(host as unknown as Parameters<typeof startCronPolling>[0]);
+  } else {
+    stopCronPolling(host as unknown as Parameters<typeof stopCronPolling>[0]);
+  }
   if (host.connected) void refreshActiveTab(host);
 }
 

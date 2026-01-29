@@ -29,15 +29,25 @@ function createProps(overrides: Partial<CronProps> = {}): CronProps {
     form: { ...DEFAULT_CRON_FORM },
     channels: [],
     channelLabels: {},
+    channelMeta: [],
     runsJobId: null,
     runs: [],
+    lastUpdatedMs: null,
+    editingJobId: null,
+    filter: "",
+    filterType: "all",
     onFormChange: () => undefined,
     onRefresh: () => undefined,
-    onAdd: () => undefined,
+    onSubmit: () => undefined,
+    onEdit: () => undefined,
+    onDuplicate: () => undefined,
+    onCancelEdit: () => undefined,
     onToggle: () => undefined,
     onRun: () => undefined,
     onRemove: () => undefined,
     onLoadRuns: () => undefined,
+    onFilterChange: () => undefined,
+    onFilterTypeChange: () => undefined,
     ...overrides,
   };
 }
@@ -47,7 +57,7 @@ describe("cron view", () => {
     const container = document.createElement("div");
     render(renderCron(createProps()), container);
 
-    expect(container.textContent).toContain("Select a job to inspect run history.");
+    expect(container.textContent).toContain("Select a job to inspect run history");
   });
 
   it("loads run history when clicking a job row", () => {
@@ -71,7 +81,7 @@ describe("cron view", () => {
     expect(onLoadRuns).toHaveBeenCalledWith("job-1");
   });
 
-  it("marks the selected job and keeps Runs button to a single call", () => {
+  it("marks the selected job and shows run history modal", () => {
     const container = document.createElement("div");
     const onLoadRuns = vi.fn();
     const job = createJob("job-1");
@@ -89,13 +99,78 @@ describe("cron view", () => {
     const selected = container.querySelector(".list-item-selected");
     expect(selected).not.toBeNull();
 
-    const runsButton = Array.from(container.querySelectorAll("button")).find(
-      (btn) => btn.textContent?.trim() === "Runs",
-    );
-    expect(runsButton).not.toBeUndefined();
-    runsButton?.dispatchEvent(new MouseEvent("click", { bubbles: true }));
+    const modal = container.querySelector(".modal-overlay");
+    expect(modal).not.toBeUndefined();
+  });
 
-    expect(onLoadRuns).toHaveBeenCalledTimes(1);
-    expect(onLoadRuns).toHaveBeenCalledWith("job-1");
+  it("shows scheduler status with enabled state", () => {
+    const container = document.createElement("div");
+    render(
+      renderCron(
+        createProps({
+          status: { enabled: true, jobs: 5, nextWakeAtMs: Date.now() + 60000 },
+        }),
+      ),
+      container,
+    );
+
+    expect(container.textContent).toContain("Scheduler");
+    expect(container.textContent).toContain("Yes");
+    expect(container.textContent).toContain("5");
+  });
+
+  it("shows edit button on job items", () => {
+    const container = document.createElement("div");
+    const job = createJob("job-1");
+    render(
+      renderCron(
+        createProps({
+          jobs: [job],
+        }),
+      ),
+      container,
+    );
+
+    const editButtons = container.querySelectorAll("button[aria-label*='Edit']");
+    expect(editButtons.length).toBeGreaterThan(0);
+  });
+
+  it("shows filter tabs with job counts", () => {
+    const container = document.createElement("div");
+    const jobs = [createJob("job-1"), createJob("job-2")];
+    jobs[1].enabled = false;
+
+    render(
+      renderCron(
+        createProps({
+          jobs,
+        }),
+      ),
+      container,
+    );
+
+    expect(container.textContent).toContain("All (2)");
+    expect(container.textContent).toContain("Enabled (1)");
+    expect(container.textContent).toContain("Disabled (1)");
+  });
+
+  it("filters jobs by search term", () => {
+    const container = document.createElement("div");
+    const jobs = [createJob("job-1"), createJob("special-job")];
+    const onFilterChange = vi.fn();
+
+    render(
+      renderCron(
+        createProps({
+          jobs,
+          filter: "special",
+          onFilterChange,
+        }),
+      ),
+      container,
+    );
+
+    expect(container.textContent).toContain("special-job");
+    expect(container.textContent).not.toContain("Daily ping");
   });
 });

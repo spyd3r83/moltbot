@@ -282,6 +282,12 @@ const RUNS_CACHE_TTL_MS = 30000;
 export async function loadCronRuns(state: CronState, jobId: string) {
   if (!state.client || !state.connected) return;
 
+  if (!jobId) {
+    state.cronRunsJobId = null;
+    state.cronRuns = [];
+    return;
+  }
+
   const cached = state.cronRunsCache.get(jobId);
   if (cached && Date.now() - cached.ts < RUNS_CACHE_TTL_MS) {
     state.cronRunsJobId = jobId;

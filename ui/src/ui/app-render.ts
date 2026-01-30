@@ -35,7 +35,7 @@ import { refreshChatAvatar } from "./app-chat";
 import { renderChat } from "./views/chat";
 import { renderConfig } from "./views/config";
 import { renderChannels } from "./views/channels";
-import { renderCron } from "./views/cron";
+import { renderCron } from "./views/cron-redesigned";
 import { renderDebug } from "./views/debug";
 import { renderInstances } from "./views/instances";
 import { renderLogs } from "./views/logs";
@@ -80,7 +80,15 @@ import {
   saveExecApprovals,
   updateExecApprovalsFormValue,
 } from "./controllers/exec-approvals";
-import { loadCronRuns, toggleCronJob, runCronJob, removeCronJob, addCronJob, buildCronSchedule, updateCronJob, editJob, duplicateJob } from "./controllers/cron";
+import {
+  addCronJob,
+  editJob,
+  loadCronRuns,
+  removeCronJob,
+  runCronJob,
+  toggleCronJob,
+  updateCronJob,
+} from "./controllers/cron";
 import { loadDebug, callDebugMethod } from "./controllers/debug";
 import { loadLogs } from "./controllers/logs";
 
@@ -317,9 +325,7 @@ export function renderApp(state: AppViewState) {
               channels: state.channelsSnapshot?.channelMeta?.length
                 ? state.channelsSnapshot.channelMeta.map((entry) => entry.id)
                 : state.channelsSnapshot?.channelOrder ?? [],
-              channelLabels: state.channelsSnapshot?.channelLabels ?? {},
-              channelMeta: state.channelsSnapshot?.channelMeta ?? [],
-              runsJobId: state.cronRunsJobId,
+              selectedJobId: state.cronRunsJobId,
               runs: state.cronRuns,
               lastUpdatedMs: state.lastUpdatedMs,
               editingJobId: state.editingJobId,
@@ -328,8 +334,8 @@ export function renderApp(state: AppViewState) {
               onFormChange: (patch) => (state.cronForm = { ...state.cronForm, ...patch }),
               onRefresh: () => state.loadCron(),
               onSubmit: async () => {
-                if (state.editingJobId) {
-                  const job = state.cronJobs.find(j => j.id === state.editingJobId);
+                if (state.editingJobId && state.editingJobId !== "new") {
+                  const job = state.cronJobs.find((j) => j.id === state.editingJobId);
                   if (job) {
                     await updateCronJob(state, job, {
                       name: state.cronForm.name.trim(),
@@ -337,22 +343,26 @@ export function renderApp(state: AppViewState) {
                       enabled: state.cronForm.enabled,
                     });
                   }
-                  state.editingJobId = null;
                 } else {
                   await addCronJob(state);
                 }
+                state.editingJobId = null;
               },
               onEdit: (job) => {
-                editJob(state, job);
-                state.editingJobId = job.id;
+                if (job.id) {
+                  editJob(state, job);
+                  state.editingJobId = job.id;
+                } else {
+                  state.cronForm = { ...DEFAULT_CRON_FORM };
+                  state.editingJobId = "new";
+                }
               },
-              onDuplicate: (job) => {
-                duplicateJob(state, job);
-                state.editingJobId = null;
-              },
-              onCancelEdit: () => {
-                state.cronForm = { ...DEFAULT_CRON_FORM };
-                state.editingJobId = null;
+              onSelectJob: (job) => {
+                if (state.cronRunsJobId === job.id) {
+                  loadCronRuns(state, "");
+                } else {
+                  loadCronRuns(state, job.id);
+                }
               },
               onToggle: (job, enabled) => toggleCronJob(state, job, enabled),
               onRun: (job) => runCronJob(state, job),
@@ -360,6 +370,10 @@ export function renderApp(state: AppViewState) {
                 if (confirm(`Are you sure you want to delete "${job.name}"?`)) {
                   void removeCronJob(state, job);
                 }
+              },
+              onCloseModal: () => {
+                state.editingJobId = null;
+                state.cronForm = { ...DEFAULT_CRON_FORM };
               },
               onLoadRuns: (jobId) => loadCronRuns(state, jobId),
               onFilterChange: (filter) => (state.cronFilter = filter),

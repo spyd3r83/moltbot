@@ -15,7 +15,6 @@ export type CronProps = {
   channels: string[];
   editingJobId: string | null;
   selectedJobId: string | null;
-  runsJobId: string | null;
   runs: CronRunLogEntry[];
   lastUpdatedMs: number | null;
   filter: string;
@@ -29,6 +28,7 @@ export type CronProps = {
   onSelectJob: (job: CronJob) => void;
   onLoadRuns: (jobId: string) => void;
   onRefresh: () => void;
+  onCloseModal: () => void;
   onFilterChange: (filter: string) => void;
   onFilterTypeChange: (type: "all" | "enabled" | "disabled") => void;
 };
@@ -163,7 +163,7 @@ export function renderCron(props: CronProps) {
         job: selectedJob,
         runs: props.runs,
         onLoadRuns: props.onLoadRuns,
-        onClose: () => props.onSelectJob({} as CronJob),
+        onClose: () => props.onLoadRuns(""),
       })}
 
       ${renderCronEditModal({
@@ -175,7 +175,7 @@ export function renderCron(props: CronProps) {
         error: props.error,
         onFormChange: props.onFormChange,
         onSubmit: props.onSubmit,
-        onClose: () => props.onEdit({} as CronJob),
+        onClose: props.onCloseModal,
       })}
     </section>
   `;

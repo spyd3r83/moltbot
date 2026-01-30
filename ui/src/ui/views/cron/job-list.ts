@@ -1,5 +1,5 @@
-import { html, nothing } from "lit";
-import { formatCronPayload, formatCronSchedule, formatCronState } from "../../presenter";
+import { html } from "lit";
+import { formatCronState } from "../../presenter";
 import type { CronJob } from "../../types";
 
 export type JobListProps = {
@@ -25,83 +25,57 @@ function renderJob(job: CronJob, props: JobListProps) {
   return html`
     <div class=${itemClass} @click=${() => props.onLoadRuns(job.id)}>
       <div class="list-main">
-        <div class="list-title">${job.name}</div>
-        <div class="list-sub">${formatCronSchedule(job)}</div>
-        <div class="muted">${formatCronPayload(job)}</div>
-        ${job.agentId ? html`<div class="muted">Agent: ${job.agentId}</div>` : nothing}
-        <div class="chip-row" style="margin-top: 6px;">
-          <span class="chip">${job.enabled ? "enabled" : "disabled"}</span>
-          <span class="chip">${job.sessionTarget}</span>
-          <span class="chip">${job.wakeMode}</span>
+        <div class="list-title-row">
+          <div class="list-title">${job.name}</div>
+          <div class="chip-row" style="margin-top: 4px;">
+            <span class="chip ${job.enabled ? "chip-enabled" : "chip-disabled"}">${job.enabled ? "enabled" : "disabled"}</span>
+            <span class="chip">${job.sessionTarget}</span>
+          </div>
+        </div>
+        <div class="list-meta">
+          <div class="list-status">${formatCronState(job)}</div>
+          <div class="list-actions">
+            <button
+              class="btn btn-sm btn-action"
+              ?disabled=${props.busy}
+              @click=${(event: Event) => {
+                event.stopPropagation();
+                props.onEdit(job);
+              }}
+              aria-label="Edit job ${job.name}"
+              title="Edit"
+            >
+              <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                <path d="M11 4H4a2 2 0 0 0-2 2v14a2 2 0 0 0 2 2h14a2 2 0 0 0 2-2v-7"/>
+                <path d="M18.5 2.5a2.121 2.121 0 0 1 3 3L12 15l-4 1 1-4 9.5-9.5z"/>
+              </svg>
+            </button>
+            <button
+              class="btn btn-sm btn-action ${job.enabled ? "btn-primary" : ""}"
+              ?disabled=${props.busy || !job.enabled}
+              @click=${(event: Event) => {
+                event.stopPropagation();
+                props.onRun(job);
+              }}
+              title="Run job now"
+            >
+              Run
+            </button>
+            <button
+              class="btn btn-sm btn-action btn-danger"
+              ?disabled=${props.busy}
+              @click=${(event: Event) => {
+                event.stopPropagation();
+                props.onRemove(job);
+              }}
+              title="Remove job"
+            >
+              Remove
+            </button>
+          </div>
         </div>
       </div>
-      <div class="list-meta">
-        <div>${formatCronState(job)}</div>
-        <div class="row" style="justify-content: flex-end; margin-top: 8px;">
-          <button
-            class="btn icon-btn"
-            ?disabled=${props.busy}
-            @click=${(event: Event) => {
-              event.stopPropagation();
-              props.onEdit(job);
-            }}
-            aria-label="Edit job ${job.name}"
-            title="Edit"
-          >
-            <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
-              <path d="M11 4H4a2 2 0 0 0-2 2v14a2 2 0 0 0 2 2h14a2 2 0 0 0 2-2v-7"/>
-              <path d="M18.5 2.5a2.121 2.121 0 0 1 3 3L12 15l-4 1 1-4 9.5-9.5z"/>
-            </svg>
-          </button>
-          <button
-            class="btn icon-btn"
-            ?disabled=${props.busy}
-            @click=${(event: Event) => {
-              event.stopPropagation();
-              props.onDuplicate(job);
-            }}
-            aria-label="Duplicate job ${job.name}"
-            title="Duplicate"
-          >
-            <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
-              <rect x="9" y="9" width="13" height="13" rx="2" ry="2"/>
-              <path d="M5 15H4a2 2 0 0 1-2-2V4a2 2 0 0 1 2-2h9a2 2 0 0 1 2 2v1"/>
-            </svg>
-          </button>
-          <button
-            class="btn"
-            ?disabled=${props.busy}
-            @click=${(event: Event) => {
-              event.stopPropagation();
-              props.onToggle(job, !job.enabled);
-            }}
-          >
-            ${job.enabled ? "Disable" : "Enable"}
-          </button>
-          <button
-            class="btn"
-            ?disabled=${props.busy}
-            @click=${(event: Event) => {
-              event.stopPropagation();
-              props.onRun(job);
-            }}
-          >
-            Run
-          </button>
-          <button
-            class="btn danger"
-            ?disabled=${props.busy}
-            @click=${(event: Event) => {
-              event.stopPropagation();
-              props.onRemove(job);
-            }}
-          >
-            Remove
-          </button>
-        </div>
-      </div>
-    </div>
-  `;
+    </div>`;
 }
 
 export function renderJobList(props: JobListProps) {
@@ -125,8 +99,31 @@ export function renderJobList(props: JobListProps) {
 
   return html`
     <div class="card" style="margin-top: 18px;">
-      <div class="card-title">Jobs</div>
-      <div class="card-sub">All scheduled jobs stored in the gateway.</div>
+        <div class="list-title-row">
+          <div class="card-title">Jobs</div>
+          <div class="card-sub">All scheduled jobs stored in the gateway.</div>
+          <div class="row" style="justify-content: flex-end; gap: 12px;">
+            <button
+              class="btn"
+              @click=${() => {
+                const now = Date.now();
+                props.onDuplicate({
+                  id: "new",
+                  name: "New Job",
+                  schedule: { kind: "every", everyMs: 86400000 },
+                  sessionTarget: "main",
+                  payload: { kind: "agentTurn", message: "New job description" },
+                  enabled: true,
+                  createdAtMs: now,
+                  updatedAtMs: now,
+                  wakeMode: "next-heartbeat",
+                });
+              }}
+            >
+              New Job
+            </button>
+          </div>
+        </div>
       ${props.jobs.length === 0
         ? html`<div class="muted" style="margin-top: 12px;">No jobs yet.</div>`
         : html`
